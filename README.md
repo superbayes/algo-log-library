@@ -141,7 +141,7 @@ if (processor.LoadImage("path/to/image.jpg"))
 }
 ```
 
-### 依赖注入示例，使用AddLogLibraryService和AddAlgoLibraryService注册服务
+### 依赖注入示例
 ```csharp
 using AlgoLibrary.Interfaces;
 using AlgoLibrary.Implementations;
@@ -209,41 +209,6 @@ fileLogger.Dispose();
 
 ### SampleApp
 - 引用AlgoLibrary和LogLibrary项目
-
-## 架构设计
-
-### 接口隔离原则
-每个库都通过接口暴露功能，实现细节被隐藏，便于：
-- 单元测试（可模拟接口）
-- 实现替换（可轻松更换不同的实现）
-- 依赖注入
-
-### 异步支持
-所有耗时操作都提供同步和异步版本
-
-### 资源管理
-所有实现类都实现`IDisposable`接口，确保资源正确释放
-
-### 错误处理
-全面的异常处理和错误恢复机制
-
-## 扩展建议
-
-### 算法库扩展
-1. 添加更多图像处理算法
-2. 支持视频处理
-3. 添加机器学习功能
-4. 支持GPU加速
-
-### 日志库扩展
-1. 添加网络日志（发送到日志服务器）
-2. 添加数据库日志
-3. 支持结构化日志（JSON格式）
-4. 添加日志轮转和归档
-
-## 许可证
-
-本项目仅供学习和参考使用。
 
 ## 作者
 - nanyangjx@126.com
