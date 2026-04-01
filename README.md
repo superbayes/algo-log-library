@@ -1,12 +1,13 @@
 # Algo-Log Library 解决方案
 
-基于C# .NET 8.0开发的算法库和日志库解决方案，采用接口+实现的架构方式。
+- 基于C# .NET 8.0开发的算法库和日志库解决方案，采用接口+实现的架构方式。
 
-- 这是一个用于在C#中，创建算法库和日志库的模板。
+* 这是一个用于在C#中，创建算法库和日志库的模板。
 
 ## 项目结构
 
 ### 解决方案文件
+
 - `AlgoLogLibrary.sln` - 主解决方案文件
 
 ### 项目组成
@@ -16,13 +17,11 @@
    - `DependencyInjection.cs` - 依赖注入扩展（注册 `IImageProcessor`）
    - `Interfaces/IImageProcessor.cs` - 图像处理器接口
    - `Implementations/OpenCVProcessor.cs` - OpenCVSharp实现
-
 2. **LogLibrary** - 简易的日志库
    - `LogLibrary.csproj` - 项目文件
    - `DependencyInjection.cs` - 依赖注入扩展（注册 `ILogger`）
    - `Interfaces/ILogger.cs` - 日志记录器接口（包含LogLevel枚举）
    - `Implementations/FileLogger.cs` - 文件日志实现
-
 3. **SampleApp** - 示例应用程序
    - `SampleApp.csproj` - 项目文件
    - `Program.cs` - 示例代码
@@ -30,10 +29,12 @@
    - `appsettings.json` - 应用配置（示例）
 
 ### 顶层文件（根目录）
+
 - `README.md` - 项目说明
 - `README-DI.md` - 依赖注入说明
 
-### 文件结构（简化）
+### 文件结构
+
 ```
 algo-log-library/
 ├── AlgoLogLibrary.sln
@@ -58,63 +59,22 @@ algo-log-library/
     └── appsettings.json
 ```
 
-## 命名规范
-
-遵循C#标准命名规范：
-- 接口以大写"I"开头：`IImageProcessor`, `ILogger`
-- 实现类使用描述性名称：`OpenCVProcessor`, `FileLogger`
-- 命名空间按功能组织：`AlgoLibrary.Interfaces`, `AlgoLibrary.Implementations`等
-
 ## 功能特性
 
-### 算法库 (AlgoLibrary)
-
-#### 接口：`IImageProcessor`
-- 图像加载/保存（同步/异步）
-- 图像转换：灰度转换、大小调整、边缘检测
-- 图像信息获取
-- 支持异步操作
-- 实现`IDisposable`接口
-
-#### 实现：`OpenCVProcessor`
-- 基于OpenCVSharp 4.10.0
-- 完整的错误处理
-- 资源自动管理
-- 线程安全操作
-
-### 日志库 (LogLibrary)
-
-#### 接口：`ILogger`
-- 支持5种日志级别：Debug, Info, Warning, Error, Fatal
-- 同步/异步日志记录
-- 异常信息记录
-- 日志级别过滤
-- 实现`IDisposable`接口
-
-#### 实现类
-1. **FileLogger** - 文件日志
-   - 自动创建日志目录
-   - 日志文件头部/尾部信息
-   - 自动刷新和文件管理
-   - 异常情况下的降级处理（输出到控制台）
-
-## 快速开始
-
 ### 环境要求
+
 - .NET 8.0 SDK 或更高版本
 - Visual Studio 2022（推荐）或 VS Code
 
-### 打开项目
-1. 使用Visual Studio 2022打开 `AlgoLogLibrary.sln`
-2. 或者使用命令行：`dotnet build`
-
 ### 运行示例
+
 ```bash
 cd SampleApp
 dotnet run
 ```
 
 ### 使用算法库
+
 ```csharp
 using AlgoLibrary.Interfaces;
 using AlgoLibrary.Implementations;
@@ -142,6 +102,7 @@ if (processor.LoadImage("path/to/image.jpg"))
 ```
 
 ### 依赖注入示例
+
 ```csharp
 using AlgoLibrary.Interfaces;
 using AlgoLibrary.Implementations;
@@ -173,6 +134,7 @@ if (processor.LoadImage("path/to/image.jpg"))
 ```
 
 ### 使用日志库
+
 ```csharp
 using LogLibrary.Interfaces;
 using LogLibrary.Implementations;
@@ -201,14 +163,19 @@ fileLogger.Dispose();
 ## 项目依赖
 
 ### AlgoLibrary
+
 - OpenCvSharp4 (4.10.0.20241108)
 - OpenCvSharp4.runtime.win (4.10.0.20241108)
 
 ### LogLibrary
+
 - 无外部依赖（仅使用.NET标准库）
 
 ### SampleApp
+
 - 引用AlgoLibrary和LogLibrary项目
 
 ## 作者
-- nanyangjx@126.com
+
+- <nanyangjx@126.com>
+
