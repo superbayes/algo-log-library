@@ -24,6 +24,19 @@ public static class AlgoUtils
         return rect.Right <= grayImage.Width && rect.Bottom <= grayImage.Height;
     }
 
+    /// <summary>
+    /// 对灰度图像进行 Hough 变换检测线
+    /// </summary>
+    /// <param name="grayImage"></param>
+    /// <param name="cannyThreshold1"></param>
+    /// <param name="cannyThreshold2"></param>
+    /// <param name="cannyApertureSize"></param>
+    /// <param name="cannyL2Gradient"></param>
+    /// <param name="roi"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
     public static LineSegmentPoint[] DetectLinesHoughP(
         Mat grayImage,
         double cannyThreshold1 = 50,
