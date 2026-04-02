@@ -245,6 +245,46 @@ public class OpenCVProcessor : IImageProcessor
         return await Task.Run(() => ApplyEdgeDetection());
     }
 
+    public (int count, double ratio) CountPixelsInRange(Mat image, byte lowerInclusive, byte upperInclusive)
+    {
+        if (image == null || image.Empty())
+        {
+            _logger.Warning("像素区间统计失败：输入图像为空");
+            return (0, 0.0);
+        }
+
+        try
+        {
+            byte min = lowerInclusive <= upperInclusive ? lowerInclusive : upperInclusive;
+            byte max = lowerInclusive <= upperInclusive ? upperInclusive : lowerInclusive;
+
+            Mat gray = image;
+            Mat? tmp = null;
+            if (image.Channels() != 1)
+            {
+                tmp = new Mat();
+                Cv2.CvtColor(image, tmp, ColorConversionCodes.BGR2GRAY);
+                gray = tmp;
+            }
+
+            using var mask = new Mat();
+            Cv2.InRange(gray, new Scalar(min), new Scalar(max), mask);
+            int count = Cv2.CountNonZero(mask);
+            int total = gray.Rows * gray.Cols;
+            double ratio = total > 0 ? (double)count / total : 0.0;
+
+            tmp?.Dispose();
+
+            _logger.Debug($"像素区间[{min},{max}]计数: {count}, 占比: {ratio:P2}");
+            return (count, ratio);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("像素区间统计时发生错误", ex);
+            return (0, 0.0);
+        }
+    }
+
     public string GetImageInfo()
     {
         if (!IsImageLoaded)

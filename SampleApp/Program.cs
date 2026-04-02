@@ -149,7 +149,7 @@ namespace SampleApp
             Console.WriteLine("应用程序服务开始运行");
             
             // 示例1: 使用算法库处理图像
-            await DemonstrateImageProcessing();
+            DemonstrateImageProcessing();
             
             Console.WriteLine("图像处理演示完成");
             
@@ -165,7 +165,7 @@ namespace SampleApp
             Console.WriteLine("应用程序服务运行完成");
         }
         
-        private async Task DemonstrateImageProcessing()
+        private void DemonstrateImageProcessing()
         {
             Console.WriteLine("开始演示图像处理功能");
             
@@ -204,12 +204,12 @@ namespace SampleApp
                     
                     // 转换为灰度图像
                     Console.WriteLine("开始转换为灰度图像...");
-                    bool graySuccess = await _processor.ConvertToGrayScaleAsync();
+                    bool graySuccess = _processor.ConvertToGrayScale();
                     
                     if (graySuccess)
                     {
                         string grayOutputPath = $"{outputImagePath}_gray.jpg";
-                        await _processor.SaveImageAsync(grayOutputPath);
+                        _processor.SaveImage(grayOutputPath);
                         Console.WriteLine($"灰度图像已保存: {grayOutputPath}");
                     }
                     
@@ -218,12 +218,12 @@ namespace SampleApp
                     
                     // 调整图像大小
                     Console.WriteLine("开始调整图像大小...");
-                    bool resizeSuccess = await _processor.ResizeAsync(800, 600);
+                    bool resizeSuccess = _processor.Resize(800, 600);
                     
                     if (resizeSuccess)
                     {
                         string resizeOutputPath = $"{outputImagePath}_resized.jpg";
-                        await _processor.SaveImageAsync(resizeOutputPath);
+                        _processor.SaveImage(resizeOutputPath);
                         Console.WriteLine($"调整大小后的图像已保存: {resizeOutputPath}");
                     }
                     
@@ -232,12 +232,12 @@ namespace SampleApp
                     
                     // 应用边缘检测
                     Console.WriteLine("开始应用边缘检测...");
-                    bool edgeSuccess = await _processor.ApplyEdgeDetectionAsync();
+                    bool edgeSuccess = _processor.ApplyEdgeDetection();
                     
                     if (edgeSuccess)
                     {
                         string edgeOutputPath = $"{outputImagePath}_edges.jpg";
-                        await _processor.SaveImageAsync(edgeOutputPath);
+                        _processor.SaveImage(edgeOutputPath);
                         Console.WriteLine($"边缘检测图像已保存: {edgeOutputPath}");
                     }
                     
