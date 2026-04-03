@@ -42,8 +42,8 @@ public static class AlgoUtils
         double cannyThreshold1 = 50,
         double cannyThreshold2 = 150,
         int cannyApertureSize = 3,
-        bool cannyL2Gradient = false,
-        OpenCvSharp.Rect? roi = null)
+        bool cannyL2Gradient = false
+        )
     {
         if (grayImage == null)
             throw new ArgumentNullException(nameof(grayImage));
@@ -73,19 +73,6 @@ public static class AlgoUtils
         OpenCvSharp.Rect roiRect = default;
         Mat grayForDetect = gray;
 
-        if (roi.HasValue)
-        {
-            roiRect = roi.Value;
-            if (!IsRectFullyInside(gray, roiRect))
-            {
-                convertedGray?.Dispose();
-                throw new ArgumentOutOfRangeException(nameof(roi), "ROI 超出图像范围");
-            }
-
-            roiMat = new Mat(gray, roiRect);
-            grayForDetect = roiMat;
-        }
-
         // 1,对灰度图像进行平滑处理
         using var blur = new Mat();
         Cv2.GaussianBlur(grayForDetect, blur, new Size(3, 3), 0.0);
@@ -111,7 +98,7 @@ public static class AlgoUtils
         roiMat?.Dispose();
         convertedGray?.Dispose();
 
-        if (!roi.HasValue || lines.Length == 0)
+        if (lines.Length == 0)
             return lines;
 
         int dx = roiRect.X;
@@ -164,8 +151,8 @@ public static class AlgoUtils
         double param1 = 100.0,
         double param2 = 30.0,
         int minRadius = 10,
-        int maxRadius = 100,
-        OpenCvSharp.Rect? roi = null)
+        int maxRadius = 100
+        )
     {
         if (image == null)
             throw new ArgumentNullException(nameof(image));
@@ -197,20 +184,6 @@ public static class AlgoUtils
         OpenCvSharp.Rect roiRect = default;
         Mat grayForDetect = gray;
 
-        // 如果指定了ROI，提取ROI区域
-        if (roi.HasValue)
-        {
-            roiRect = roi.Value;
-            if (!IsRectFullyInside(gray, roiRect))
-            {
-                convertedGray?.Dispose();
-                throw new ArgumentOutOfRangeException(nameof(roi), "ROI 超出图像范围");
-            }
-
-            roiMat = new Mat(gray, roiRect);
-            grayForDetect = roiMat;
-        }
-
         // 1. 对灰度图像进行平滑处理，减少噪声
         using var blur = new Mat();
         Cv2.GaussianBlur(grayForDetect, blur, new Size(9, 9), 2.0, 2.0);
@@ -240,7 +213,7 @@ public static class AlgoUtils
         convertedGray?.Dispose();
 
         // 如果没有指定ROI或者没有检测到圆，直接返回
-        if (!roi.HasValue || circles.Length == 0)
+        if (circles.Length == 0)
             return circles;
 
         // 如果指定了ROI，需要将检测到的圆坐标转换回原图像坐标系
