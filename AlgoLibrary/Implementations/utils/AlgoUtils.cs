@@ -202,7 +202,7 @@ public static class AlgoUtils
             HoughModes.Gradient,     // 检测方法，使用梯度法（最常用）
             dp,                      // 累加器分辨率与图像分辨率的反比
             minDist,                 // 圆心之间的最小距离
-            param1: param1,          // Canny边缘检测的高阈值
+            param1: param1,          // Canny边缘检测的高阈值,值越大
             param2: param2,          // 累加器阈值
             minRadius: minRadius,    // 最小半径
             maxRadius: maxRadius     // 最大半径
@@ -234,4 +234,110 @@ public static class AlgoUtils
 
         return shifted;
     }
+
+    /// <summary>
+    /// 检测连通域的算法Demo
+    /// 演示如何使用OpenCV检测图像中的连通域
+    /// </summary>
+    /// <param name="image">输入图像（可以是彩色或灰度图）</param>
+    public static void DetectConnectAreaDemo(Mat image)
+    {
+        if (image == null)
+            throw new ArgumentNullException(nameof(image));
+        if (image.Empty())
+            throw new ArgumentException("输入图像为空", nameof(image));
+
+        Mat? convertedGray = null;
+        Mat gray = image;
+
+        // 如果输入图像不是灰度图，转换为灰度图
+        if (image.Channels() != 1)
+        {
+            convertedGray = new Mat();
+            Cv2.CvtColor(image, convertedGray, ColorConversionCodes.BGR2GRAY);
+            gray = convertedGray;
+        }
+
+        // 确保图像类型为 CV_8UC1（8位无符号单通道）
+        if (gray.Type() != MatType.CV_8UC1)
+        {
+            var tmp = new Mat();
+            gray.ConvertTo(tmp, MatType.CV_8UC1);
+            convertedGray?.Dispose();
+            convertedGray = tmp;
+            gray = convertedGray;
+        }
+
+        // 1. 对图像进行二值化处理
+        using var binary = new Mat();
+        Cv2.Threshold(gray, binary, 127, 255, ThresholdTypes.Binary);
+
+        // 2. 查找连通域轮廓
+        Point[][] contours;
+        HierarchyIndex[] hierarchy;
+        Cv2.FindContours(binary, out contours, out hierarchy, RetrievalModes.List, ContourApproximationModes.ApproxSimple);
+
+        Console.WriteLine($"检测到 {contours.Length} 个连通域");
+
+        // 3. 创建彩色图像用于可视化
+        Mat resultImage;
+        if (image.Channels() == 1)
+        {
+            // 如果是灰度图，转换为彩色图以便可视化
+            resultImage = new Mat();
+            Cv2.CvtColor(image, resultImage, ColorConversionCodes.GRAY2BGR);
+        }
+        else
+        {
+            resultImage = image.Clone();
+        }
+
+        // 4. 绘制检测到的连通域
+        Random rnd = new Random();
+        for (int i = 0; i < contours.Length; i++)
+        {
+            // 计算连通域的面积
+            double area = Cv2.ContourArea(contours[i]);
+            
+            // 计算连通域的外接矩形
+            OpenCvSharp.Rect boundingRect = Cv2.BoundingRect(contours[i]);
+            
+            // 过滤掉太小的连通域（面积小于100像素）
+            if (area < 100)
+                continue;
+
+            // 生成随机颜色
+            Scalar color = new Scalar(rnd.Next(0, 256), rnd.Next(0, 256), rnd.Next(0, 256));
+            
+            // 绘制轮廓
+            Cv2.DrawContours(resultImage, contours, i, color, 2);
+            
+            // 绘制外接矩形
+            Cv2.Rectangle(resultImage, boundingRect, color, 1);
+            
+            // 在矩形上方显示面积
+            string areaText = $"Area: {area:F0}";
+            Cv2.PutText(resultImage, areaText, 
+                new Point(boundingRect.X, boundingRect.Y - 5), 
+                HersheyFonts.HersheySimplex, 0.5, color, 1);
+            
+            Console.WriteLine($"连通域 {i + 1}: 面积 = {area:F0}, 外接矩形 = [{boundingRect.X}, {boundingRect.Y}, {boundingRect.Width}, {boundingRect.Height}]");
+        }
+
+        // 5. 显示结果
+        Cv2.ImShow("二值化图像", binary);
+
+        // 6. 显示结果
+        Cv2.ImShow("原始图像", image);
+        Cv2.ImShow("二值化图像", binary);
+        Cv2.ImShow("连通域检测结果", resultImage);
+        Cv2.WaitKey(0);
+        Cv2.DestroyAllWindows();
+
+        // 6. 释放资源
+        convertedGray?.Dispose();
+        resultImage.Dispose();
+        binary.Dispose();
+    }
+    
 }

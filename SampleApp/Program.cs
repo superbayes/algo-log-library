@@ -14,15 +14,27 @@ namespace SampleApp
     {
         static async Task Main(string[] args)
         {
-            Console.WriteLine("=== 算法库和日志库示例应用 (依赖注入版本) ===");
-            Console.WriteLine();
-            Console.WriteLine("请选择运行模式:");
-            Console.WriteLine("1. 运行完整示例应用");
-            Console.WriteLine("2. 运行依赖注入测试");
-            Console.WriteLine("3. 退出");
-            Console.Write("请输入选择 (1-3): ");
+            string choice;
             
-            var choice = Console.ReadLine();
+            // 如果有命令行参数，使用第一个参数作为选择
+            if (args.Length > 0)
+            {
+                choice = args[0];
+                Console.WriteLine($"=== 算法库和日志库示例应用 (命令行模式: {choice}) ===");
+            }
+            else
+            {
+                Console.WriteLine("=== 算法库和日志库示例应用 (依赖注入版本) ===");
+                Console.WriteLine();
+                Console.WriteLine("请选择运行模式:");
+                Console.WriteLine("1. 运行完整示例应用");
+                Console.WriteLine("2. 运行依赖注入测试");
+                Console.WriteLine("3. 运行连通域检测测试");
+                Console.WriteLine("4. 退出");
+                Console.Write("请输入选择 (1-4): ");
+                
+                choice = Console.ReadLine();
+            }
             
             switch (choice)
             {
@@ -42,7 +54,7 @@ namespace SampleApp
             }
 
             Console.WriteLine();
-            if (!Console.IsInputRedirected)
+            if (!Console.IsInputRedirected && args.Length == 0)
             {
                 Console.WriteLine("程序执行完成。按任意键退出...");
                 Console.ReadKey();
