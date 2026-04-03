@@ -142,4 +142,123 @@ public static class AlgoUtils
         return shifted;
     }
 
+    /// <summary>
+    /// 使用霍夫变换检测图像中的圆
+    /// </summary>
+    /// <param name="image">输入图像（可以是彩色或灰度图）</param>
+    /// <param name="dp">累加器分辨率与图像分辨率的反比。dp=1时累加器与输入图像相同分辨率，dp=2时累加器分辨率为输入图像的一半</param>
+    /// <param name="minDist">检测到的圆心之间的最小距离。如果太小，可能会检测到多个相邻的圆；如果太大，可能会漏掉一些圆</param>
+    /// <param name="param1">Canny边缘检测的高阈值，低阈值自动设为高阈值的一半</param>
+    /// <param name="param2">累加器阈值，用于圆心检测。值越小，检测到的圆越多（包括假圆）；值越大，检测到的圆越少但更可靠</param>
+    /// <param name="minRadius">要检测的圆的最小半径（像素）</param>
+    /// <param name="maxRadius">要检测的圆的最大半径（像素）</param>
+    /// <param name="roi">感兴趣区域（ROI），如果为null则处理整个图像</param>
+    /// <returns>检测到的圆数组，每个圆包含圆心坐标和半径</returns>
+    /// <exception cref="ArgumentNullException">输入图像为空时抛出</exception>
+    /// <exception cref="ArgumentException">输入图像为空图像时抛出</exception>
+    /// <exception cref="ArgumentOutOfRangeException">ROI超出图像范围时抛出</exception>
+    public static CircleSegment[] DetectHoughCircleFromImage(
+        Mat image,
+        double dp = 1.0,
+        double minDist = 50.0,
+        double param1 = 100.0,
+        double param2 = 30.0,
+        int minRadius = 10,
+        int maxRadius = 100,
+        OpenCvSharp.Rect? roi = null)
+    {
+        if (image == null)
+            throw new ArgumentNullException(nameof(image));
+        if (image.Empty())
+            throw new ArgumentException("输入图像为空", nameof(image));
+
+        Mat? convertedGray = null;
+        Mat gray = image;
+
+        // 如果输入图像不是灰度图，转换为灰度图
+        if (image.Channels() != 1)
+        {
+            convertedGray = new Mat();
+            Cv2.CvtColor(image, convertedGray, ColorConversionCodes.BGR2GRAY);
+            gray = convertedGray;
+        }
+
+        // 确保图像类型为 CV_8UC1（8位无符号单通道）
+        if (gray.Type() != MatType.CV_8UC1)
+        {
+            var tmp = new Mat();
+            gray.ConvertTo(tmp, MatType.CV_8UC1);
+            convertedGray?.Dispose();
+            convertedGray = tmp;
+            gray = convertedGray;
+        }
+
+        Mat? roiMat = null;
+        OpenCvSharp.Rect roiRect = default;
+        Mat grayForDetect = gray;
+
+        // 如果指定了ROI，提取ROI区域
+        if (roi.HasValue)
+        {
+            roiRect = roi.Value;
+            if (!IsRectFullyInside(gray, roiRect))
+            {
+                convertedGray?.Dispose();
+                throw new ArgumentOutOfRangeException(nameof(roi), "ROI 超出图像范围");
+            }
+
+            roiMat = new Mat(gray, roiRect);
+            grayForDetect = roiMat;
+        }
+
+        // 1. 对灰度图像进行平滑处理，减少噪声
+        using var blur = new Mat();
+        Cv2.GaussianBlur(grayForDetect, blur, new Size(9, 9), 2.0, 2.0);
+        grayForDetect = blur;
+
+        // 2. 使用霍夫圆变换检测圆
+        // 参数说明：
+        // - dp: 累加器分辨率与图像分辨率的反比，值越大检测速度越快但精度越低
+        // - minDist: 检测到的圆心之间的最小距离，避免检测到重叠的圆
+        // - param1: Canny边缘检测的高阈值
+        // - param2: 累加器阈值，值越大检测标准越严格
+        // - minRadius: 要检测的圆的最小半径
+        // - maxRadius: 要检测的圆的最大半径
+        var circles = Cv2.HoughCircles(
+            grayForDetect,           // 输入灰度图像
+            HoughModes.Gradient,     // 检测方法，使用梯度法（最常用）
+            dp,                      // 累加器分辨率与图像分辨率的反比
+            minDist,                 // 圆心之间的最小距离
+            param1: param1,          // Canny边缘检测的高阈值
+            param2: param2,          // 累加器阈值
+            minRadius: minRadius,    // 最小半径
+            maxRadius: maxRadius     // 最大半径
+        );
+
+        // 释放资源
+        roiMat?.Dispose();
+        convertedGray?.Dispose();
+
+        // 如果没有指定ROI或者没有检测到圆，直接返回
+        if (!roi.HasValue || circles.Length == 0)
+            return circles;
+
+        // 如果指定了ROI，需要将检测到的圆坐标转换回原图像坐标系
+        int dx = roiRect.X;
+        int dy = roiRect.Y;
+        var shifted = new CircleSegment[circles.Length];
+        
+        for (int i = 0; i < circles.Length; i++)
+        {
+            var circle = circles[i];
+            // 将ROI内的坐标转换为原图像坐标
+            shifted[i] = new CircleSegment
+            {
+                Center = new Point2f(circle.Center.X + dx, circle.Center.Y + dy),
+                Radius = circle.Radius
+            };
+        }
+
+        return shifted;
+    }
 }
