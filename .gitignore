@@ -1,5 +1,6 @@
 .vs/
 .vscode/
+.trae/
 
 **/bin/
 **/obj/
@@ -21,3 +22,4 @@ BenchmarkDotNet.Artifacts/
 *.dll
 *.exe
 
+dotnet-utf8.ps1
