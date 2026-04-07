@@ -5,6 +5,18 @@ namespace AlgoLibrary.Implementations.Utils;
 public static class AlgoUtils
 {
     /// <summary>
+    /// 输入弧度,输出角度 degrees，
+    /// 并归一化到 [0, 180) ，表示与水平线的夹角（0° 与 180° 等价时会归一化为 0°）
+    /// </summary>
+    /// <param name="radians"></param>
+    /// <returns></returns>
+    public static double RadianToAngle0To180(double radians)
+    {
+        double degrees = radians * 180.0 / Math.PI;
+        return (degrees % 180.0 + 180.0) % 180.0;
+    }
+
+    /// <summary>
     /// 检查矩形是否完全在灰度图像范围内
     /// </summary>
     /// <param name="grayImage">灰度图像</param>
@@ -340,6 +352,7 @@ public static class AlgoUtils
         resultImage.Dispose();
         binary.Dispose();
     }
+    
     
 
 }
