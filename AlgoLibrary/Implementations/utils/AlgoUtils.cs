@@ -120,7 +120,7 @@ public static class AlgoUtils
         {
             var l = shifted[i];
             double angle = Math.Atan2(l.P2.Y - l.P1.Y, l.P2.X - l.P1.X);
-            double angleDeg = angle * 180.0 / Math.PI;
+            double angleDeg = angle * 180.0 / Math.PI; // 弧度转换为角度
             angleDeg = (angleDeg % 180.0 + 180.0) % 180.0;// 角度转换为0-180度范围
             // LineSegmentPoint 没有 Angle 属性，直接跳过赋值
             // 如需使用角度，可单独存储或改用其他数据结构
@@ -270,7 +270,8 @@ public static class AlgoUtils
 
         // 1. 对图像进行二值化处理
         using var binary = new Mat();
-        Cv2.Threshold(gray, binary, 127, 255, ThresholdTypes.Binary);
+        //采用自适应阈值的二值化处理，自动调整阈值以适应不同光照条件
+        Cv2.AdaptiveThreshold(gray, binary, 255, AdaptiveThresholdTypes.GaussianC, ThresholdTypes.Binary, 11, 0.5);
 
         // 2. 查找连通域轮廓
         Point[][] contours;
@@ -340,5 +341,5 @@ public static class AlgoUtils
         binary.Dispose();
     }
     
-    
+
 }
