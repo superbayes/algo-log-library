@@ -5,9 +5,63 @@ namespace AlgoLibrary.Implementations.Utils;
 public static class AlgoUtils
 {
     /// <summary>
-    /// 输入弧度,输出角度 degrees，
-    /// 并归一化到 [0, 180) ，表示与水平线的夹角（0° 与 180° 等价时会归一化为 0°）
+    /// 依据点集拟合直线，返回直线的系数 A, B, C
+    /// 其中，A, B, C 分别表示直线的法向量和点到直线的距离
+    /// 如果要转成斜截式（非竖直线）：y = kx + b, 则 k = -B / A, b = -C / A
+    /// 直线倾斜角度：atan2(B, A) .其中，atan2(B, A) 表示与水平线的夹角，范围为 [-pi, pi]
+    /// 
     /// </summary>
+    /// <param name="points">输入点集</param>>
+    /// <returns></returns>
+    public static (double A, double B, double C) FitLineFromPoints(IEnumerable<Point2f> points)
+    {
+        if (points == null) throw new ArgumentNullException(nameof(points));
+
+        var pts = points as Point2f[] ?? points.ToArray();
+        if (pts.Length < 2) throw new ArgumentException("点集数量不足，至少需要2个点", nameof(points));
+
+        DistanceTypes distanceType = DistanceTypes.Huber;
+        double param = 0;//仅对 DIST_FAIR, DIST_WELSCH, DIST_HUBER 有效。设为 0 时，OpenCV 会自动选择一个最优值
+        double reps = 0.01;//径向精度
+        double aeps = 0.01;//角度精度
+        var line = Cv2.FitLine(pts, distanceType, param, reps, aeps);
+
+        var vx = (double)line.Vx;
+        var vy = (double)line.Vy;
+        var x0 = (double)line.X1;
+        var y0 = (double)line.Y1;
+
+        var vNorm = Math.Sqrt(vx * vx + vy * vy);
+        if (vNorm <= 1e-12) throw new InvalidOperationException("拟合失败：方向向量为0");
+        vx /= vNorm;
+        vy /= vNorm;
+
+        var a = vy;
+        var b = -vx;
+        var c = -(a * x0 + b * y0);
+
+        var abNorm = Math.Sqrt(a * a + b * b);
+        if (abNorm > 1e-12)
+        {
+            a /= abNorm;
+            b /= abNorm;
+            c /= abNorm;
+        }
+
+        if (a < 0 || (Math.Abs(a) <= 1e-12 && b < 0))
+        {
+            a = -a;
+            b = -b;
+            c = -c;
+        }
+
+        return (a, b, c);
+    }
+
+
+    /// <summary>
+    /// 输入弧度,输出角度 degrees，
+    /// 并归一化到 [0, 180) ，表示与水平线的夹角
     /// <param name="radians"></param>
     /// <returns>角度值</returns>
     public static double RadianToAngle0To180(double radians)
@@ -37,7 +91,7 @@ public static class AlgoUtils
     }
 
     /// <summary>
-    /// 对灰度图像进行 Hough 变换检测线
+    /// 对灰度图像进行 Hough直线检测
     /// </summary>
     /// <param name="grayImage"></param>
     /// <param name="cannyThreshold1"></param>
