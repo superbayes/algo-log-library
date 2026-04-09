@@ -7,6 +7,7 @@ using LogLibrary.Interfaces;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using AlgoLibrary.Implementations.Utils;
 
 namespace SampleApp
 {
@@ -30,8 +31,9 @@ namespace SampleApp
                 Console.WriteLine("1. 运行完整示例应用");
                 Console.WriteLine("2. 运行依赖注入测试");
                 Console.WriteLine("3. 运行连通域检测测试");
-                Console.WriteLine("4. 退出");
-                Console.Write("请输入选择 (1-4): ");
+                Console.WriteLine("4. 测试直方图峰值查找函数");
+                Console.WriteLine("5. 退出");
+                Console.Write("请输入选择 (1-5): ");
                 
                 choice = Console.ReadLine();
             }
@@ -47,6 +49,9 @@ namespace SampleApp
                 case "3":
                     Console.WriteLine("程序退出");
                     return;
+                case "4":
+                    TestHistogramPeak();
+                    break;
                 default:
                     Console.WriteLine("无效选择，运行完整示例应用");
                     await RunFullApplication();
@@ -131,6 +136,74 @@ namespace SampleApp
                 logger.Error("应用程序运行失败", ex);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// 测试直方图峰值查找函数
+        /// </summary>
+        static void TestHistogramPeak()
+        {
+            Console.WriteLine("=== 测试直方图峰值查找函数 ===");
+            Console.WriteLine();
+            
+            // 测试1: 简单数据
+            Console.WriteLine("测试1: 简单数据");
+            var data1 = new System.Collections.Generic.List<double> { 1.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0, 4.0, 5.0 };
+            var result1 = MathUtils.FindPeakInHistogram(data1);
+            Console.WriteLine($"数据: [{string.Join(", ", data1)}]");
+            Console.WriteLine($"最大峰: count={result1.count}, value={result1.value:F2}");
+            Console.WriteLine($"预期: count=3 (值3.0出现3次)");
+            Console.WriteLine($"测试结果: {(result1.count == 3 && Math.Abs(result1.value - 3.0) < 0.5 ? "通过" : "失败")}");
+            Console.WriteLine();
+            
+            // 测试2: 所有值相同
+            Console.WriteLine("测试2: 所有值相同");
+            var data2 = new System.Collections.Generic.List<int> { 5, 5, 5, 5, 5, 5 };
+            var result2 = MathUtils.FindPeakInHistogram(data2);
+            Console.WriteLine($"数据: [{string.Join(", ", data2)}]");
+            Console.WriteLine($"最大峰: count={result2.count}, value={result2.value:F2}");
+            Console.WriteLine($"预期: count=6, value=5.0");
+            Console.WriteLine($"测试结果: {(result2.count == 6 && Math.Abs(result2.value - 5.0) < 0.1 ? "通过" : "失败")}");
+            Console.WriteLine();
+            
+            // 测试3: 指定bin数量
+            Console.WriteLine("测试3: 指定bin数量");
+            var data3 = new System.Collections.Generic.List<float> { 1.0f, 1.5f, 2.0f, 2.5f, 3.0f, 3.5f, 4.0f, 4.5f, 5.0f };
+            var result3 = MathUtils.FindPeakInHistogram(data3, 3);
+            Console.WriteLine($"数据: [{string.Join(", ", data3)}]");
+            Console.WriteLine($"使用3个bins: count={result3.count}, value={result3.value:F2}");
+            Console.WriteLine($"测试结果: 通过（函数执行无异常）");
+            Console.WriteLine();
+            
+            // 测试4: 边缘情况 - 单个元素
+            Console.WriteLine("测试4: 边缘情况 - 单个元素");
+            var data4 = new System.Collections.Generic.List<int> { 42 };
+            var result4 = MathUtils.FindPeakInHistogram(data4);
+            Console.WriteLine($"数据: [{string.Join(", ", data4)}]");
+            Console.WriteLine($"最大峰: count={result4.count}, value={result4.value:F2}");
+            Console.WriteLine($"预期: count=1, value=42.0");
+            Console.WriteLine($"测试结果: {(result4.count == 1 && Math.Abs(result4.value - 42.0) < 0.1 ? "通过" : "失败")}");
+            Console.WriteLine();
+            
+            // 测试5: 测试异常情况
+            Console.WriteLine("测试5: 边缘情况 - 空列表");
+            try
+            {
+                var data5 = new System.Collections.Generic.List<double>();
+                var result5 = MathUtils.FindPeakInHistogram(data5);
+                Console.WriteLine($"测试结果: 失败（应抛出异常但未抛出）");
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine($"测试结果: 通过（正确抛出ArgumentException: {ex.Message}）");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"测试结果: 失败（抛出错误类型的异常: {ex.GetType().Name}）");
+            }
+            
+            Console.WriteLine("\n所有测试完成！按任意键继续...");
+            Console.ReadKey();
         }
     }
     
