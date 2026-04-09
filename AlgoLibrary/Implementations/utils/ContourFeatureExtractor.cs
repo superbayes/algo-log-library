@@ -5,6 +5,7 @@ public static class ContourFeatureExtractor
 {
     /// <summary>
     /// 提取轮廓的 14 维固定长度归一化特征向量
+    /// 包括了轮廓的几何特征（面积、周长、宽高比等）和形状特征（Hu矩）
     /// </summary>
     /// <param name="contour">输入轮廓点集</param>
     /// <returns>14维 [0~1] 归一化特征向量</returns>
@@ -351,4 +352,353 @@ public static class ContourFeatureExtractor
         return descriptors;
     }
 
+    /// <summary>
+    /// 轮廓归一化 + 极坐标展开,输出固定长度特征向量
+    /// 1. 以重心为中心
+    /// 2. 轮廓点转极坐标（角度+距离）
+    /// 3. 按角度均匀采样
+    /// 4. 返回固定长度距离序列（特征向量）
+    /// </summary>
+    /// <param name="contour">输入轮廓点集</param>
+    /// <param name="featureLength">输出特征长度（默认32维）</param>
+    /// <returns>固定长度归一化距离特征向量</returns>
+    public static double[] ContourToPolarFeature(Point[] contour, int featureLength = 32)
+    {
+        // 安全判断
+        if (contour == null || contour.Length < 3)
+            return new double[featureLength];
+
+        // ==========================================
+        // 步骤1：计算轮廓重心（作为极坐标原点）
+        // ==========================================
+        Moments moments = Cv2.Moments(contour);
+        double cx = moments.M10 / (moments.M00 + 1e-8); // 重心X
+        double cy = moments.M01 / (moments.M00 + 1e-8); // 重心Y
+
+        // ==========================================
+        // 步骤2：把所有轮廓点转为 极坐标 (角度, 距离)
+        // ==========================================
+        List<(double angle, double dist)> polarPoints = new List<(double, double)>();
+
+        foreach (Point p in contour)
+        {
+            // 点相对于重心的坐标
+            double dx = p.X - cx;
+            double dy = p.Y - cy;
+
+            // 计算距离
+            double dist = Math.Sqrt(dx * dx + dy * dy);
+
+            // 计算角度（转为 0~2π）
+            double angle = Math.Atan2(dy, dx);
+            if (angle < 0) angle += 2 * Math.PI;
+
+            polarPoints.Add((angle, dist));
+        }
+
+        // ==========================================
+        // 步骤3：按角度从小到大排序
+        // ==========================================
+        polarPoints.Sort((a, b) => a.angle.CompareTo(b.angle));
+
+        // ==========================================
+        // 步骤4：按角度均匀采样 → 固定长度距离序列
+        // ==========================================
+        double[] feature = new double[featureLength];
+        double stepAngle = 2 * Math.PI / featureLength; // 每段角度步长
+
+        for (int i = 0; i < featureLength; i++)
+        {
+            // 当前要采样的目标角度
+            double targetAngle = i * stepAngle;
+
+            // 找到离目标角度最近的轮廓点 → 取距离
+            double minDiff = double.MaxValue;
+            double bestDist = 0;
+
+            foreach (var pt in polarPoints)
+            {
+                // 角度差（环形处理）
+                double diff = Math.Abs(pt.angle - targetAngle);
+                diff = Math.Min(diff, 2 * Math.PI - diff);
+
+                if (diff < minDiff)
+                {
+                    minDiff = diff;
+                    bestDist = pt.dist;
+                }
+            }
+
+            feature[i] = bestDist;
+        }
+
+        // ==========================================
+        // 步骤5：归一化到 [0,1]（便于机器学习）
+        // ==========================================
+        double maxDist = 0;
+        foreach (double d in feature) maxDist = Math.Max(maxDist, d);
+
+        if (maxDist > 1e-8)
+        {
+            for (int i = 0; i < featureLength; i++)
+                feature[i] /= maxDist;
+        }
+
+        return feature;
+    }
+
+    /// <summary>
+    /// 通过线性插值对轮廓进行重采样，并将点集中心化到原点
+    /// 算法原理：沿着轮廓累积距离进行均匀采样，然后计算质心并将所有点平移到原点
+    /// </summary>
+    /// <param name="contour">输入轮廓点集</param>
+    /// <param name="sampleCount">输出采样点数量</param>
+    /// <returns>中心化到原点的均匀分布轮廓点数组</returns>
+    /// <exception cref="ArgumentNullException">轮廓点集为空时抛出</exception>
+    /// <exception cref="ArgumentException">轮廓点数量不足或采样数量无效时抛出</exception>
+    public static Point2f[] ResampleAndCenterContour(Point[] contour, int sampleCount = 32)
+    {
+        // 输入验证
+        if (contour == null)
+            throw new ArgumentNullException(nameof(contour));
+
+        if (contour.Length < 3)
+            throw new ArgumentException("轮廓至少需要3个点以形成闭合轮廓", nameof(contour));
+
+        if (sampleCount <= 0)
+            throw new ArgumentException("采样数量必须大于0", nameof(sampleCount));
+
+        // 特殊情况处理：如果所有点重合或轮廓长度为0
+        double totalLen = Cv2.ArcLength(contour, true);
+        if (totalLen < 1e-10)
+        {
+            // 返回所有点都相同的采样点（已经在原点附近）
+            var uniformPoints = new Point2f[sampleCount];
+            Point center = contour[0];
+            for (int i = 0; i < sampleCount; i++)
+            {
+                uniformPoints[i] = new Point2f(center.X, center.Y);
+            }
+            return uniformPoints;
+        }
+
+        var resampled = new Point2f[sampleCount];
+        double step = totalLen / sampleCount;  // 每个采样点之间的弧长距离
+        double accumulatedDistance = 0;        // 当前累积的弧长
+        int sampleIndex = 0;                   // 当前采样点索引
+
+        // 遍历轮廓的每条边
+        for (int i = 0; i < contour.Length && sampleIndex < sampleCount; i++)
+        {
+            Point p1 = contour[i];
+            Point p2 = contour[(i + 1) % contour.Length];
+
+            // 计算当前边的长度
+            double dx = p2.X - p1.X;
+            double dy = p2.Y - p1.Y;
+            double edgeLength = Math.Sqrt(dx * dx + dy * dy);
+
+            if (edgeLength < 1e-10)
+            {
+                // 边长度为零，跳过这条边
+                continue;
+            }
+
+            // 沿着当前边生成采样点
+            while (accumulatedDistance + edgeLength >= (sampleIndex + 1) * step && sampleIndex < sampleCount)
+            {
+                // 计算插值参数 t ∈ [0, 1]
+                double targetDistance = (sampleIndex + 1) * step;
+                double t = (targetDistance - accumulatedDistance) / edgeLength;
+
+                // 确保 t 在有效范围内（处理浮点误差）
+                t = Math.Max(0, Math.Min(1, t));
+
+                // 线性插值计算采样点坐标（使用浮点数保持精度）
+                double x = p1.X + t * dx;
+                double y = p1.Y + t * dy;
+
+                // 存储采样点（使用浮点坐标）
+                resampled[sampleIndex] = new Point2f((float)x, (float)y);
+                sampleIndex++;
+            }
+
+            // 更新累积距离
+            accumulatedDistance += edgeLength;
+        }
+
+        // 处理最后一个采样点（确保闭合）
+        if (sampleIndex < sampleCount)
+        {
+            resampled[sampleIndex] = new Point2f(contour[0].X, contour[0].Y);
+        }
+
+        // 中心化：计算质心并将所有点平移到原点
+        double sumX = 0, sumY = 0;
+        for (int i = 0; i < sampleCount; i++)
+        {
+            sumX += resampled[i].X;
+            sumY += resampled[i].Y;
+        }
+        
+        double centerX = sumX / sampleCount;
+        double centerY = sumY / sampleCount;
+        
+        // 平移所有点，使质心位于原点
+        for (int i = 0; i < sampleCount; i++)
+        {
+            resampled[i] = new Point2f(
+                (float)(resampled[i].X - centerX),
+                (float)(resampled[i].Y - centerY)
+            );
+        }
+
+        return resampled;
+    }
+
+    /// <summary>
+    /// 通过线性插值对轮廓进行重采样，输出固定数量的均匀分布的轮廓点
+    /// （兼容旧版本，不进行中心化）
+    /// </summary>
+    /// <param name="contour">输入轮廓点集</param>
+    /// <param name="sampleCount">输出采样点数量</param>
+    /// <returns>均匀分布的轮廓点数组</returns>
+    /// <exception cref="ArgumentNullException">轮廓点集为空时抛出</exception>
+    /// <exception cref="ArgumentException">轮廓点数量不足或采样数量无效时抛出</exception>
+    [Obsolete("Use ResampleAndCenterContour for centered points or consider ExtractResampledContourFeature for feature extraction")]
+    public static Point[] ResampleContour(Point[] contour, int sampleCount = 32)
+    {
+        // 输入验证
+        if (contour == null)
+            throw new ArgumentNullException(nameof(contour));
+
+        if (contour.Length < 3)
+            throw new ArgumentException("轮廓至少需要3个点以形成闭合轮廓", nameof(contour));
+
+        if (sampleCount <= 0)
+            throw new ArgumentException("采样数量必须大于0", nameof(sampleCount));
+
+        // 特殊情况处理：如果所有点重合或轮廓长度为0
+        double totalLen = Cv2.ArcLength(contour, true);
+        if (totalLen < 1e-10)
+        {
+            // 返回所有点都相同的采样点
+            var uniformPoints = new Point[sampleCount];
+            Point center = contour[0];
+            for (int i = 0; i < sampleCount; i++)
+            {
+                uniformPoints[i] = center;
+            }
+            return uniformPoints;
+        }
+
+        var resampled = new Point[sampleCount];
+        double step = totalLen / sampleCount;  // 每个采样点之间的弧长距离
+        double accumulatedDistance = 0;        // 当前累积的弧长
+        int sampleIndex = 0;                   // 当前采样点索引
+
+        // 遍历轮廓的每条边
+        for (int i = 0; i < contour.Length && sampleIndex < sampleCount; i++)
+        {
+            Point p1 = contour[i];
+            Point p2 = contour[(i + 1) % contour.Length];
+
+            // 计算当前边的长度
+            double dx = p2.X - p1.X;
+            double dy = p2.Y - p1.Y;
+            double edgeLength = Math.Sqrt(dx * dx + dy * dy);
+
+            if (edgeLength < 1e-10)
+            {
+                // 边长度为零，跳过这条边
+                continue;
+            }
+
+            // 沿着当前边生成采样点
+            while (accumulatedDistance + edgeLength >= (sampleIndex + 1) * step && sampleIndex < sampleCount)
+            {
+                // 计算插值参数 t ∈ [0, 1]
+                double targetDistance = (sampleIndex + 1) * step;
+                double t = (targetDistance - accumulatedDistance) / edgeLength;
+
+                // 确保 t 在有效范围内（处理浮点误差）
+                t = Math.Max(0, Math.Min(1, t));
+
+                // 线性插值计算采样点坐标
+                double x = p1.X + t * dx;
+                double y = p1.Y + t * dy;
+
+                // 存储采样点（四舍五入到最近的整数）
+                resampled[sampleIndex] = new Point((int)Math.Round(x), (int)Math.Round(y));
+                sampleIndex++;
+            }
+
+            // 更新累积距离
+            accumulatedDistance += edgeLength;
+        }
+
+        // 处理最后一个采样点（确保闭合）
+        if (sampleIndex < sampleCount)
+        {
+            resampled[sampleIndex] = contour[0];
+        }
+
+        return resampled;
+    }
+
+    /// <summary>
+    /// 基于重采样和中心化轮廓提取固定长度特征向量
+    /// 通过对轮廓进行均匀重采样、中心化到原点，然后将坐标展平为特征向量
+    /// </summary>
+    /// <param name="contour">输入轮廓点集</param>
+    /// <param name="featureLength">输出特征向量长度（默认64维：32个点的x和y坐标）</param>
+    /// <returns>归一化的固定长度特征向量</returns>
+    /// <exception cref="ArgumentNullException">轮廓点集为空时抛出</exception>
+    /// <exception cref="ArgumentException">轮廓点数量不足或特征长度无效时抛出</exception>
+    public static double[] ExtractResampledContourFeature(Point[] contour, int featureLength = 64)
+    {
+        // 输入验证
+        if (contour == null)
+            throw new ArgumentNullException(nameof(contour));
+
+        if (contour.Length < 3)
+            throw new ArgumentException("轮廓至少需要3个点以形成闭合轮廓", nameof(contour));
+
+        if (featureLength <= 0 || featureLength % 2 != 0)
+            throw new ArgumentException("特征长度必须大于0且为偶数（每个点包含x和y坐标）", nameof(featureLength));
+
+        // 计算采样点数量：特征长度的一半（每个点贡献x和y两个值）
+        int sampleCount = featureLength / 2;
+        
+        // 1. 获取中心化重采样点集
+        Point2f[] centeredPoints = ResampleAndCenterContour(contour, sampleCount);
+        
+        // 2. 将点坐标展平为特征向量
+        double[] feature = new double[featureLength];
+        for (int i = 0; i < sampleCount; i++)
+        {
+            feature[2 * i] = centeredPoints[i].X;     // x坐标
+            feature[2 * i + 1] = centeredPoints[i].Y; // y坐标
+        }
+        
+        // 3. L2归一化（使特征向量具有单位长度）
+        double norm = 0;
+        for (int i = 0; i < featureLength; i++)
+        {
+            norm += feature[i] * feature[i];
+        }
+        
+        norm = Math.Sqrt(norm);
+        if (norm > 1e-12)
+        {
+            for (int i = 0; i < featureLength; i++)
+            {
+                feature[i] /= norm;
+            }
+        }
+        
+        return feature;
+    }
+
+    //========================================================================
 }

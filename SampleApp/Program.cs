@@ -32,8 +32,9 @@ namespace SampleApp
                 Console.WriteLine("2. 运行依赖注入测试");
                 Console.WriteLine("3. 运行连通域检测测试");
                 Console.WriteLine("4. 测试直方图峰值查找函数");
-                Console.WriteLine("5. 退出");
-                Console.Write("请输入选择 (1-5): ");
+                Console.WriteLine("5. 测试轮廓特征提取函数");
+                Console.WriteLine("6. 退出");
+                Console.Write("请输入选择 (1-6): ");
                 
                 choice = Console.ReadLine();
             }
@@ -52,6 +53,12 @@ namespace SampleApp
                 case "4":
                     TestHistogramPeak();
                     break;
+                case "5":
+                    TestContourFeatureExtractor.RunTest();
+                    break;
+                case "6":
+                    Console.WriteLine("程序退出");
+                    return;
                 default:
                     Console.WriteLine("无效选择，运行完整示例应用");
                     await RunFullApplication();
@@ -205,6 +212,7 @@ namespace SampleApp
             Console.WriteLine("\n所有测试完成！按任意键继续...");
             Console.ReadKey();
         }
+
     }
     
     /// <summary>
