@@ -161,20 +161,6 @@ namespace SampleApp
             Console.WriteLine("验证旧函数仍然可用但会显示过时警告");
             Console.WriteLine();
             
-            try
-            {
-                #pragma warning disable CS0618 // 类型或成员已过时
-                var oldResult = ContourFeatureExtractor.ResampleContour(rectangleContour, 8);
-                #pragma warning restore CS0618 // 类型或成员已过时
-                
-                Console.WriteLine($"旧函数返回 {oldResult.Length} 个点");
-                Console.WriteLine($"第一个点: ({oldResult[0].X}, {oldResult[0].Y})");
-                Console.WriteLine($"旧函数兼容性测试: 通过");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"测试3失败: {ex.Message}");
-            }
             
             Console.WriteLine("\n所有轮廓特征提取测试完成！按任意键继续...");
             Console.ReadKey();

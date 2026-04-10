@@ -1,0 +1,148 @@
+# algo-log-library 项目规则
+
+## 项目概述
+这是一个包含算法库（AlgoLibrary）和日志库（LogLibrary）的 C# .NET 8.0 项目。包含示例应用（SampleApp）用于演示和测试。
+
+## 测试代码生成规则
+
+### 核心原则
+**当需要为某个函数/类生成测试代码时：**
+1. **永远不要**将测试代码添加到 `SampleApp/Program.cs` 中
+2. **始终**在 `SampleApp/` 目录下创建独立的测试文件
+3. 遵循现有的测试文件模式
+
+### 测试文件命名规范
+- 格式：`Test{被测试的类名或功能名}.cs`
+- 示例：
+  - 测试 `AlgoUtils` 类 → `TestAlgoUtils.cs`
+  - 测试 `MathUtils.FindPeakInHistogram` 函数 → `TestMathUtilsPeak.cs`
+  - 测试 `ContourFeatureExtractor` 类 → `TestContourFeatureExtractor.cs`（已存在）
+
+### 测试类结构模板
+```csharp
+using System;
+
+namespace SampleApp
+{
+    /// <summary>
+    /// 测试 {被测试的功能} 的类
+    /// </summary>
+    public static class Test{被测试的类名}
+    {
+        /// <summary>
+        /// 运行测试
+        /// </summary>
+        public static void RunTest()
+        {
+            Console.WriteLine($"=== 测试 {被测试的功能} ===");
+            Console.WriteLine();
+            
+            // 测试1: [测试场景描述]
+            Console.WriteLine("测试1: [测试场景描述]");
+            try
+            {
+                // 测试代码
+                // 断言验证
+                Console.WriteLine("测试结果: 通过");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"测试结果: 失败 - {ex.Message}");
+            }
+            Console.WriteLine();
+            
+            // 更多测试...
+            
+            Console.WriteLine("\n所有测试完成！按任意键继续...");
+            Console.ReadKey();
+        }
+        
+        // 可选：添加辅助测试方法
+        private static void TestSpecificScenario()
+        {
+            // 具体测试逻辑
+        }
+    }
+}
+```
+
+### 测试代码内容指南
+1. **包含完整的 using 语句**：引用必要的命名空间
+2. **详细的控制台输出**：每个测试步骤都有清晰的输出
+3. **异常处理**：使用 try-catch 捕获并报告测试失败
+4. **用户交互**：测试完成后等待用户按键（如 `Console.ReadKey()`）
+5. **XML 文档注释**：为测试类和方法添加文档注释
+
+### 集成到 Program.cs
+在 `SampleApp/Program.cs` 的 `Main` 方法中，只需添加对新测试的调用选项：
+```csharp
+case "X":  // X 是新的选项编号
+    Test{被测试的类名}.RunTest();
+    break;
+```
+
+### 禁止的模式
+❌ **不要这样做：**
+- 在 `Program.cs` 中添加新的测试方法（如 `TestHistogramPeak()`）
+- 将多个不相关的测试合并到一个文件中
+- 创建没有命名空间或类结构的测试代码
+
+✅ **应该这样做：**
+- 为每个主要功能创建独立的测试文件
+- 遵循现有的 `TestContourFeatureExtractor.cs` 和 `TestDI.cs` 模式
+- 保持测试代码的模块化和可维护性
+
+## 项目特定规则
+
+### 算法库测试
+- 所有算法函数测试应包括边界情况测试
+- 数学工具函数应测试数值精度
+- 图像处理函数应提供测试图像路径处理
+
+### 日志库测试
+- 测试不同日志级别
+- 验证日志文件输出
+- 测试异常日志记录
+
+### 依赖注入测试
+- 测试服务注册和解析
+- 验证生命周期管理
+- 测试自定义配置
+
+## 示例：如何应用此规则
+
+**场景：** 需要测试 `AlgoUtils` 类中的 `CalculateDistance` 函数
+
+**AI 助手应生成：**
+1. 创建 `SampleApp/TestAlgoUtils.cs` 文件
+2. 实现 `TestAlgoUtils.RunTest()` 方法
+3. 在 `Program.cs` 中添加选项调用（如 case "7"）
+4. **绝不**在 `Program.cs` 中直接实现测试逻辑
+
+## 验证规则
+- 检查 `SampleApp/` 目录中是否存在独立的测试文件
+- 确认 `Program.cs` 中没有新增的测试方法
+- 验证测试文件遵循命名和结构规范
+
+## 其他项目规则
+
+### 代码风格
+- C# 代码使用 PascalCase 命名类和方法
+- 异步方法以 Async 后缀结尾
+- 公共 API 必须有 XML 文档注释
+- 使用依赖注入模式
+
+### 架构约束
+- 算法库和日志库保持分离
+- 接口与实现分离
+- 遵循 Clean Architecture 原则
+
+### 文件组织
+- 测试代码放在 `SampleApp/` 目录下
+- 算法实现在 `AlgoLibrary/Implementations/`
+- 接口定义在 `AlgoLibrary/Interfaces/`
+- 工具类在 `AlgoLibrary/Implementations/utils/`
+
+---
+
+*此文件用于指导 AI 助手在项目中生成代码时遵循一致的规范和模式。*

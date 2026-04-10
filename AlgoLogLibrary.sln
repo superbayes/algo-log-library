@@ -9,8 +9,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LogLibrary", "LogLibrary\Lo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleApp", "SampleApp\SampleApp.csproj", "{0CD47FE7-ECFA-4E69-B01A-D1F848101921}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestFourierDescriptorsApp", "TestFourierDescriptorsApp\TestFourierDescriptorsApp.csproj", "{989DBC83-F4C0-7D4F-0E01-01462790C540}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,18 +55,6 @@ Global
 		{0CD47FE7-ECFA-4E69-B01A-D1F848101921}.Release|x64.Build.0 = Release|Any CPU
 		{0CD47FE7-ECFA-4E69-B01A-D1F848101921}.Release|x86.ActiveCfg = Release|Any CPU
 		{0CD47FE7-ECFA-4E69-B01A-D1F848101921}.Release|x86.Build.0 = Release|Any CPU
-		{989DBC83-F4C0-7D4F-0E01-01462790C540}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{989DBC83-F4C0-7D4F-0E01-01462790C540}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{989DBC83-F4C0-7D4F-0E01-01462790C540}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{989DBC83-F4C0-7D4F-0E01-01462790C540}.Debug|x64.Build.0 = Debug|Any CPU
-		{989DBC83-F4C0-7D4F-0E01-01462790C540}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{989DBC83-F4C0-7D4F-0E01-01462790C540}.Debug|x86.Build.0 = Debug|Any CPU
-		{989DBC83-F4C0-7D4F-0E01-01462790C540}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{989DBC83-F4C0-7D4F-0E01-01462790C540}.Release|Any CPU.Build.0 = Release|Any CPU
-		{989DBC83-F4C0-7D4F-0E01-01462790C540}.Release|x64.ActiveCfg = Release|Any CPU
-		{989DBC83-F4C0-7D4F-0E01-01462790C540}.Release|x64.Build.0 = Release|Any CPU
-		{989DBC83-F4C0-7D4F-0E01-01462790C540}.Release|x86.ActiveCfg = Release|Any CPU
-		{989DBC83-F4C0-7D4F-0E01-01462790C540}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
