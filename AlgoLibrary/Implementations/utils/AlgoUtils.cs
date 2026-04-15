@@ -407,5 +407,130 @@ public static class AlgoUtils
         binary.Dispose();
     }
 
+    /// <summary>
+    /// 计算排除离群矩形后的平均矩形
+    /// 所有矩形具有相同的宽度和高度，仅位置可能不同
+    /// </summary>
+    /// <param name="rects">矩形集合</param>
+    /// <param name="outlierThreshold">离群阈值，默认1.5（基于IQR方法）</param>
+    /// <returns>平均矩形，保持原始宽度和高度</returns>
+    /// <exception cref="ArgumentNullException">输入矩形集合为空时抛出</exception>
+    /// <exception cref="ArgumentException">矩形集合为空或数量不足时抛出</exception>
+    public static OpenCvSharp.Rect CalculateAverageRectWithoutOutliers(
+        IEnumerable<OpenCvSharp.Rect> rects,
+        double outlierThreshold = 1.5)
+    {
+        if (rects == null)
+            throw new ArgumentNullException(nameof(rects));
+
+        var rectArray = rects as OpenCvSharp.Rect[] ?? rects.ToArray();
+        if (rectArray.Length == 0)
+            throw new ArgumentException("矩形集合不能为空", nameof(rects));
+
+        if (rectArray.Length == 1)
+            return rectArray[0];
+
+        // 提取所有矩形的中心点
+        var centers = rectArray.Select(r => new Point2f(r.X + r.Width / 2.0f, r.Y + r.Height / 2.0f)).ToArray();
+
+        // 计算X坐标的离群
+        var xValues = centers.Select(c => c.X).ToArray();
+        var filteredXIndices = FilterOutliers(xValues, outlierThreshold);
+
+        // 计算Y坐标的离群
+        var yValues = centers.Select(c => c.Y).ToArray();
+        var filteredYIndices = FilterOutliers(yValues, outlierThreshold);
+
+        // 获取非离群矩形的索引（既不在X离群也不在Y离群）
+        var validIndices = new HashSet<int>();
+        for (int i = 0; i < rectArray.Length; i++)
+        {
+            if (!filteredXIndices.Contains(i) && !filteredYIndices.Contains(i))
+            {
+                validIndices.Add(i);
+            }
+        }
+
+        // 如果没有有效的矩形，使用所有矩形
+        if (validIndices.Count == 0)
+        {
+            validIndices = new HashSet<int>(Enumerable.Range(0, rectArray.Length));
+        }
+
+        // 计算平均位置
+        float avgX = 0, avgY = 0;
+        int count = 0;
+        foreach (int idx in validIndices)
+        {
+            var rect = rectArray[idx];
+            avgX += rect.X + rect.Width / 2.0f;
+            avgY += rect.Y + rect.Height / 2.0f;
+            count++;
+        }
+
+        if (count == 0)
+            return rectArray[0];
+
+        avgX /= count;
+        avgY /= count;
+
+        // 使用第一个矩形的宽度和高度（假设所有矩形尺寸相同）
+        var firstRect = rectArray[0];
+        int avgRectX = (int)(avgX - firstRect.Width / 2.0f);
+        int avgRectY = (int)(avgY - firstRect.Height / 2.0f);
+
+        return new OpenCvSharp.Rect(avgRectX, avgRectY, firstRect.Width, firstRect.Height);
+    }
+
+    /// <summary>
+    /// 使用IQR方法过滤离群值的辅助函数
+    /// </summary>
+    /// <param name="values">数值数组</param>
+    /// <param name="threshold">离群阈值，默认1.5</param>
+    /// <returns>离群值的索引集合</returns>
+    private static HashSet<int> FilterOutliers(float[] values, double threshold = 1.5)
+    {
+        var outliers = new HashSet<int>();
+        
+        if (values.Length < 4) // IQR方法需要至少4个数据点
+            return outliers;
+
+        // 复制并排序值
+        var sortedValues = values.ToArray();
+        Array.Sort(sortedValues);
+
+        // 计算四分位数
+        int n = sortedValues.Length;
+        float q1, q3;
+
+        if (n % 2 == 0)
+        {
+            // 偶数个元素
+            q1 = sortedValues[n / 4];
+            q3 = sortedValues[(3 * n) / 4];
+        }
+        else
+        {
+            // 奇数个元素
+            q1 = sortedValues[n / 4];
+            q3 = sortedValues[(3 * n) / 4];
+        }
+
+        float iqr = q3 - q1;
+        float lowerBound = q1 - (float)(threshold * iqr);
+        float upperBound = q3 + (float)(threshold * iqr);
+
+        // 找出离群值
+        for (int i = 0; i < values.Length; i++)
+        {
+            if (values[i] < lowerBound || values[i] > upperBound)
+            {
+                outliers.Add(i);
+            }
+        }
+
+        return outliers;
+    }
+
     
 }
