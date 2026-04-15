@@ -647,5 +647,69 @@ public static class AlgoUtils
         return outliers;
     }
 
+    /// <summary>
+    /// 计算图像ROI区域的平均亮度（灰度平均值）
+    /// </summary>
+    /// <param name="mat">输入图像（灰度图或彩色图）</param>
+    /// <param name="rect">感兴趣区域（ROI）矩形</param>
+    /// <returns>ROI区域的平均亮度值（对于彩色图，返回所有通道的平均值）</returns>
+    /// <exception cref="ArgumentNullException">输入图像为空时抛出</exception>
+    /// <exception cref="ArgumentException">输入图像为空图像或矩形无效时抛出</exception>
+    /// <exception cref="ArgumentOutOfRangeException">ROI超出图像范围时抛出</exception>
+    public static double CalculateRoiAverageBrightness(Mat mat, OpenCvSharp.Rect rect)
+    {
+        if (mat == null)
+            throw new ArgumentNullException(nameof(mat));
+        if (mat.Empty())
+            throw new ArgumentException("输入图像为空", nameof(mat));
+        if (rect.Width <= 0 || rect.Height <= 0)
+            throw new ArgumentException("矩形尺寸无效", nameof(rect));
+        
+        // 检查矩形是否完全在图像范围内
+        if (!IsRectFullyInside(mat, rect))
+            throw new ArgumentOutOfRangeException(nameof(rect), "ROI矩形超出图像范围");
+
+        Mat? convertedGray = null;
+        Mat gray = mat;
+
+        // 如果输入图像不是灰度图，转换为灰度图
+        if (mat.Channels() != 1)
+        {
+            convertedGray = new Mat();
+            Cv2.CvtColor(mat, convertedGray, ColorConversionCodes.BGR2GRAY);
+            gray = convertedGray;
+        }
+
+        // 确保图像类型为 CV_8UC1（8位无符号单通道）
+        if (gray.Type() != MatType.CV_8UC1)
+        {
+            var tmp = new Mat();
+            gray.ConvertTo(tmp, MatType.CV_8UC1);
+            convertedGray?.Dispose();
+            convertedGray = tmp;
+            gray = convertedGray;
+        }
+
+        try
+        {
+            // 提取ROI区域
+            using var roi = new Mat(gray, rect);
+            
+            // 计算ROI的平均值
+            var mean = Cv2.Mean(roi);
+            
+            // 对于灰度图，mean[0]就是平均亮度
+            // 对于彩色图转换为的灰度图，同样使用mean[0]
+            double averageBrightness = mean[0];
+            
+            return averageBrightness;
+        }
+        finally
+        {
+            // 释放转换的图像资源
+            convertedGray?.Dispose();
+        }
+    }
+
     
 }

@@ -204,6 +204,160 @@ namespace SampleApp
             {
                 Console.WriteLine($"测试结果: 失败 - {ex.Message}");
             }
+            Console.WriteLine();
+            
+            // 测试10: CalculateRoiAverageBrightness 函数 - 灰度图像测试
+            Console.WriteLine("测试10: CalculateRoiAverageBrightness 函数 - 灰度图像测试");
+            try
+            {
+                // 创建一个100x100的灰度测试图像，所有像素值为128（中等灰度）
+                using var testImage = new OpenCvSharp.Mat(100, 100, OpenCvSharp.MatType.CV_8UC1, new OpenCvSharp.Scalar(128));
+                
+                // 测试矩形完全在图像内
+                var rect1 = new OpenCvSharp.Rect(10, 10, 50, 50);
+                double result10a = AlgoUtils.CalculateRoiAverageBrightness(testImage, rect1);
+                Console.WriteLine($"图像: 100x100灰度图（所有像素值128）");
+                Console.WriteLine($"ROI矩形: (10,10,50,50)");
+                Console.WriteLine($"计算的平均亮度: {result10a:F2}");
+                Console.WriteLine($"预期: 128.00（所有像素值相同）");
+                
+                bool testPassed10a = Math.Abs(result10a - 128.0) < 0.1;
+                Console.WriteLine($"测试结果: {(testPassed10a ? "通过" : "失败")}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"测试结果: 失败 - {ex.Message}");
+            }
+            Console.WriteLine();
+            
+            // 测试11: CalculateRoiAverageBrightness 函数 - 彩色图像测试
+            Console.WriteLine("测试11: CalculateRoiAverageBrightness 函数 - 彩色图像测试");
+            try
+            {
+                // 创建一个100x100的彩色测试图像，所有像素值为(64, 128, 192)
+                using var testImage = new OpenCvSharp.Mat(100, 100, OpenCvSharp.MatType.CV_8UC3, new OpenCvSharp.Scalar(64, 128, 192));
+                
+                // 测试矩形完全在图像内
+                var rect1 = new OpenCvSharp.Rect(20, 20, 30, 30);
+                double result11 = AlgoUtils.CalculateRoiAverageBrightness(testImage, rect1);
+                Console.WriteLine($"图像: 100x100彩色图（所有像素值B=64,G=128,R=192）");
+                Console.WriteLine($"ROI矩形: (20,20,30,30)");
+                Console.WriteLine($"计算的平均亮度: {result11:F2}");
+                Console.WriteLine($"预期: 约140.00（转换为灰度后的平均值：0.299*192 + 0.587*128 + 0.114*64 ≈ 140.00）");
+                
+                // 彩色图转换为灰度图的计算公式：Gray = 0.299*R + 0.587*G + 0.114*B
+                // 对于(64,128,192): Gray = 0.299*192 + 0.587*128 + 0.114*64 ≈ 140.0
+                bool testPassed11 = Math.Abs(result11 - 140.0) < 1.0;
+                Console.WriteLine($"测试结果: {(testPassed11 ? "通过" : "失败")}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"测试结果: 失败 - {ex.Message}");
+            }
+            Console.WriteLine();
+            
+            // 测试12: CalculateRoiAverageBrightness 函数 - 不同亮度区域测试
+            Console.WriteLine("测试12: CalculateRoiAverageBrightness 函数 - 不同亮度区域测试");
+            try
+            {
+                // 创建一个100x100的灰度测试图像，左半部分为0，右半部分为255
+                using var testImage = new OpenCvSharp.Mat(100, 100, OpenCvSharp.MatType.CV_8UC1, new OpenCvSharp.Scalar(0));
+                
+                // 设置右半部分为255 - 使用SubMat和SetTo方法
+                var rightHalf = new OpenCvSharp.Rect(50, 0, 50, 100);
+                using (var rightHalfMat = testImage.SubMat(rightHalf))
+                {
+                    rightHalfMat.SetTo(new OpenCvSharp.Scalar(255));
+                }
+                
+                // 测试左半部分的ROI
+                var leftRect = new OpenCvSharp.Rect(10, 10, 30, 30);
+                double result12a = AlgoUtils.CalculateRoiAverageBrightness(testImage, leftRect);
+                Console.WriteLine($"图像: 100x100灰度图（左半部分0，右半部分255）");
+                Console.WriteLine($"左半部分ROI矩形: (10,10,30,30)");
+                Console.WriteLine($"计算的平均亮度: {result12a:F2}");
+                Console.WriteLine($"预期: 0.00（左半部分全黑）");
+                
+                bool testPassed12a = Math.Abs(result12a - 0.0) < 0.1;
+                Console.WriteLine($"测试结果: {(testPassed12a ? "通过" : "失败")}");
+                Console.WriteLine();
+                
+                // 测试右半部分的ROI
+                var rightRect = new OpenCvSharp.Rect(60, 10, 30, 30);
+                double result12b = AlgoUtils.CalculateRoiAverageBrightness(testImage, rightRect);
+                Console.WriteLine($"右半部分ROI矩形: (60,10,30,30)");
+                Console.WriteLine($"计算的平均亮度: {result12b:F2}");
+                Console.WriteLine($"预期: 255.00（右半部分全白）");
+                
+                bool testPassed12b = Math.Abs(result12b - 255.0) < 0.1;
+                Console.WriteLine($"测试结果: {(testPassed12b ? "通过" : "失败")}");
+                Console.WriteLine();
+                
+                // 测试跨越边界的ROI
+                var crossRect = new OpenCvSharp.Rect(40, 10, 30, 30);
+                double result12c = AlgoUtils.CalculateRoiAverageBrightness(testImage, crossRect);
+                Console.WriteLine($"跨越边界ROI矩形: (40,10,30,30)");
+                Console.WriteLine($"计算的平均亮度: {result12c:F2}");
+                Console.WriteLine($"预期: 170.00（10个像素为0，20个像素为255的平均值：(10*0 + 20*255)/30 = 170.00）");
+                
+                bool testPassed12c = Math.Abs(result12c - 170.0) < 0.1;
+                Console.WriteLine($"测试结果: {(testPassed12c ? "通过" : "失败")}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"测试结果: 失败 - {ex.Message}");
+            }
+            Console.WriteLine();
+            
+            // 测试13: CalculateRoiAverageBrightness 函数 - 异常情况测试
+            Console.WriteLine("测试13: CalculateRoiAverageBrightness 函数 - 异常情况测试");
+            try
+            {
+                using var testImage = new OpenCvSharp.Mat(100, 100, OpenCvSharp.MatType.CV_8UC1, new OpenCvSharp.Scalar(128));
+                
+                // 测试无效矩形（宽度为0）
+                var invalidRect = new OpenCvSharp.Rect(10, 10, 0, 50);
+                try
+                {
+                    double result13a = AlgoUtils.CalculateRoiAverageBrightness(testImage, invalidRect);
+                    Console.WriteLine($"测试无效矩形（宽度为0）: 失败（应抛出异常但未抛出）");
+                }
+                catch (ArgumentException)
+                {
+                    Console.WriteLine($"测试无效矩形（宽度为0）: 通过（正确抛出ArgumentException）");
+                }
+                Console.WriteLine();
+                
+                // 测试超出图像范围的矩形
+                var outOfBoundsRect = new OpenCvSharp.Rect(90, 90, 20, 20);
+                try
+                {
+                    double result13b = AlgoUtils.CalculateRoiAverageBrightness(testImage, outOfBoundsRect);
+                    Console.WriteLine($"测试超出图像范围的矩形: 失败（应抛出异常但未抛出）");
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    Console.WriteLine($"测试超出图像范围的矩形: 通过（正确抛出ArgumentOutOfRangeException）");
+                }
+                Console.WriteLine();
+                
+                // 测试空图像
+                using var emptyImage = new OpenCvSharp.Mat();
+                var validRect = new OpenCvSharp.Rect(0, 0, 10, 10);
+                try
+                {
+                    double result13c = AlgoUtils.CalculateRoiAverageBrightness(emptyImage, validRect);
+                    Console.WriteLine($"测试空图像: 失败（应抛出异常但未抛出）");
+                }
+                catch (ArgumentException)
+                {
+                    Console.WriteLine($"测试空图像: 通过（正确抛出ArgumentException）");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"测试结果: 失败 - {ex.Message}");
+            }
             
             Console.WriteLine("\n所有测试完成！按任意键继续...");
             Console.ReadKey();

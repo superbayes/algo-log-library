@@ -33,7 +33,7 @@ namespace SampleApp
                 Console.WriteLine("3. 运行连通域检测测试");
                 Console.WriteLine("4. 测试直方图峰值查找函数");
                 Console.WriteLine("5. 测试轮廓特征提取函数");
-                Console.WriteLine("6. 测试 AlgoUtils 工具函数");
+                Console.WriteLine("6. 测试 AlgoUtils 工具函数（包括ROI平均亮度计算）");
                 Console.WriteLine("7. 退出");
                 Console.Write("请输入选择 (1-7): ");
                 
