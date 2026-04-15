@@ -412,7 +412,7 @@ public static class AlgoUtils
     /// 所有矩形具有相同的宽度和高度，仅位置可能不同
     /// </summary>
     /// <param name="rects">矩形集合</param>
-    /// <param name="outlierThreshold">离群阈值，默认1.5（基于IQR方法）</param>
+    /// <param name="outlierThreshold">离群阈值，默认1.5（基于中位数绝对偏差MAD方法）</param>
     /// <returns>平均矩形，保持原始宽度和高度</returns>
     /// <exception cref="ArgumentNullException">输入矩形集合为空时抛出</exception>
     /// <exception cref="ArgumentException">矩形集合为空或数量不足时抛出</exception>
@@ -433,19 +433,27 @@ public static class AlgoUtils
         // 提取所有矩形的中心点
         var centers = rectArray.Select(r => new Point2f(r.X + r.Width / 2.0f, r.Y + r.Height / 2.0f)).ToArray();
 
-        // 计算X坐标的离群
-        var xValues = centers.Select(c => c.X).ToArray();
-        var filteredXIndices = FilterOutliers(xValues, outlierThreshold);
-
-        // 计算Y坐标的离群
-        var yValues = centers.Select(c => c.Y).ToArray();
-        var filteredYIndices = FilterOutliers(yValues, outlierThreshold);
-
-        // 获取非离群矩形的索引（既不在X离群也不在Y离群）
-        var validIndices = new HashSet<int>();
-        for (int i = 0; i < rectArray.Length; i++)
+        // 使用中位数作为初始参考点（对离群值更鲁棒）
+        var medianCenter = CalculateMedianPoint(centers);
+        
+        // 计算每个点到中位点的距离
+        var distances = centers.Select(c => Distance(c, medianCenter)).ToArray();
+        
+        // 计算距离的中位数绝对偏差（MAD）
+        var mad = CalculateMAD(distances);
+        
+        // 如果MAD为0（所有点相同），直接使用所有点
+        if (mad < 1e-6)
         {
-            if (!filteredXIndices.Contains(i) && !filteredYIndices.Contains(i))
+            return CalculateAverageRectFromIndices(rectArray, Enumerable.Range(0, rectArray.Length).ToList());
+        }
+        
+        // 找出非离群点（距离 <= medianDistance + outlierThreshold * mad）
+        double medianDistance = CalculateMedian(distances);
+        var validIndices = new List<int>();
+        for (int i = 0; i < distances.Length; i++)
+        {
+            if (distances[i] <= medianDistance + outlierThreshold * mad)
             {
                 validIndices.Add(i);
             }
@@ -454,25 +462,122 @@ public static class AlgoUtils
         // 如果没有有效的矩形，使用所有矩形
         if (validIndices.Count == 0)
         {
-            validIndices = new HashSet<int>(Enumerable.Range(0, rectArray.Length));
+            validIndices = Enumerable.Range(0, rectArray.Length).ToList();
         }
 
-        // 计算平均位置
+        // 计算非离群矩形的平均矩形
+        return CalculateAverageRectFromIndices(rectArray, validIndices);
+    }
+
+    /// <summary>
+    /// 计算点的中位数
+    /// </summary>
+    private static Point2f CalculateMedianPoint(Point2f[] points)
+    {
+        if (points.Length == 0)
+            return new Point2f(0, 0);
+            
+        var xValues = points.Select(p => p.X).OrderBy(x => x).ToArray();
+        var yValues = points.Select(p => p.Y).OrderBy(y => y).ToArray();
+        
+        float medianX, medianY;
+        int n = xValues.Length;
+        
+        if (n % 2 == 0)
+        {
+            medianX = (xValues[n / 2 - 1] + xValues[n / 2]) / 2.0f;
+            medianY = (yValues[n / 2 - 1] + yValues[n / 2]) / 2.0f;
+        }
+        else
+        {
+            medianX = xValues[n / 2];
+            medianY = yValues[n / 2];
+        }
+        
+        return new Point2f(medianX, medianY);
+    }
+
+    /// <summary>
+    /// 计算中位数绝对偏差（MAD）
+    /// </summary>
+    private static double CalculateMAD(float[] values)
+    {
+        if (values.Length == 0)
+            return 0;
+            
+        // 计算中位数
+        var sortedValues = values.OrderBy(v => v).ToArray();
+        double median;
+        int n = sortedValues.Length;
+        
+        if (n % 2 == 0)
+        {
+            median = (sortedValues[n / 2 - 1] + sortedValues[n / 2]) / 2.0;
+        }
+        else
+        {
+            median = sortedValues[n / 2];
+        }
+        
+        // 计算绝对偏差
+        var absoluteDeviations = values.Select(v => Math.Abs(v - median)).ToArray();
+        
+        // 计算绝对偏差的中位数
+        var sortedDeviations = absoluteDeviations.OrderBy(d => d).ToArray();
+        double mad;
+        
+        if (n % 2 == 0)
+        {
+            mad = (sortedDeviations[n / 2 - 1] + sortedDeviations[n / 2]) / 2.0;
+        }
+        else
+        {
+            mad = sortedDeviations[n / 2];
+        }
+        
+        return mad;
+    }
+
+    /// <summary>
+    /// 计算中位数
+    /// </summary>
+    private static double CalculateMedian(float[] values)
+    {
+        if (values.Length == 0)
+            return 0;
+            
+        var sortedValues = values.OrderBy(v => v).ToArray();
+        int n = sortedValues.Length;
+        
+        if (n % 2 == 0)
+        {
+            return (sortedValues[n / 2 - 1] + sortedValues[n / 2]) / 2.0;
+        }
+        else
+        {
+            return sortedValues[n / 2];
+        }
+    }
+
+    /// <summary>
+    /// 从指定索引计算平均矩形
+    /// </summary>
+    private static OpenCvSharp.Rect CalculateAverageRectFromIndices(OpenCvSharp.Rect[] rectArray, List<int> indices)
+    {
+        if (indices.Count == 0)
+            return rectArray[0];
+
+        // 计算非离群矩形的平均位置
         float avgX = 0, avgY = 0;
-        int count = 0;
-        foreach (int idx in validIndices)
+        foreach (int idx in indices)
         {
             var rect = rectArray[idx];
             avgX += rect.X + rect.Width / 2.0f;
             avgY += rect.Y + rect.Height / 2.0f;
-            count++;
         }
 
-        if (count == 0)
-            return rectArray[0];
-
-        avgX /= count;
-        avgY /= count;
+        avgX /= indices.Count;
+        avgY /= indices.Count;
 
         // 使用第一个矩形的宽度和高度（假设所有矩形尺寸相同）
         var firstRect = rectArray[0];
@@ -480,6 +585,16 @@ public static class AlgoUtils
         int avgRectY = (int)(avgY - firstRect.Height / 2.0f);
 
         return new OpenCvSharp.Rect(avgRectX, avgRectY, firstRect.Width, firstRect.Height);
+    }
+
+    /// <summary>
+    /// 计算两点之间的欧氏距离
+    /// </summary>
+    private static float Distance(Point2f p1, Point2f p2)
+    {
+        float dx = p1.X - p2.X;
+        float dy = p1.Y - p2.Y;
+        return (float)Math.Sqrt(dx * dx + dy * dy);
     }
 
     /// <summary>
