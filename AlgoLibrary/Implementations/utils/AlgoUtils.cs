@@ -12,7 +12,7 @@ public static class AlgoUtils
     /// <param name="org">文字左上角基准点（通常是检测框的左上角）</param>
     /// <param name="bgColor">背景框颜色（BGR）</param>
     /// <param name="textColor">文字颜色（BGR）</param>
-    static void DrawLabel(Mat img, string text, Point org, Scalar bgColor, Scalar textColor)
+    public static void DrawLabel(Mat img, string text, Point org, Scalar bgColor, Scalar textColor)
     {
         HersheyFonts font = HersheyFonts.HersheySimplex;
         double fontScale = 1.0;
