@@ -359,8 +359,14 @@ namespace SampleApp
                 Console.WriteLine($"测试结果: 失败 - {ex.Message}");
             }
             
-            Console.WriteLine("\n所有测试完成！按任意键继续...");
-            Console.ReadKey();
+            Console.WriteLine("\n所有测试完成！");
+            
+            // 只有在控制台输入可用时才等待按键
+            if (!Console.IsInputRedirected)
+            {
+                Console.WriteLine("按任意键继续...");
+                Console.ReadKey();
+            }
         }
         
         // 可选：添加辅助测试方法

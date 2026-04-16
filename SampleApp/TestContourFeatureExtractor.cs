@@ -162,8 +162,14 @@ namespace SampleApp
             Console.WriteLine();
             
             
-            Console.WriteLine("\n所有轮廓特征提取测试完成！按任意键继续...");
-            Console.ReadKey();
+            Console.WriteLine("\n所有轮廓特征提取测试完成！");
+            
+            // 只有在控制台输入可用时才等待按键
+            if (!Console.IsInputRedirected)
+            {
+                Console.WriteLine("按任意键继续...");
+                Console.ReadKey();
+            }
         }
     }
 }

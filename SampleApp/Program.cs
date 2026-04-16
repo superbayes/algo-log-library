@@ -213,8 +213,14 @@ namespace SampleApp
                 Console.WriteLine($"测试结果: 失败（抛出错误类型的异常: {ex.GetType().Name}）");
             }
             
-            Console.WriteLine("\n所有测试完成！按任意键继续...");
-            Console.ReadKey();
+            Console.WriteLine("\n所有测试完成！");
+            
+            // 只有在控制台输入可用时才等待按键
+            if (!Console.IsInputRedirected)
+            {
+                Console.WriteLine("按任意键继续...");
+                Console.ReadKey();
+            }
         }
 
     }

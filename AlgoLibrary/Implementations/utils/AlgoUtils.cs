@@ -4,6 +4,43 @@ namespace AlgoLibrary.Implementations.Utils;
 
 public static class AlgoUtils
 {
+        /// <summary>
+    /// 绘制带背景的标签文字
+    /// </summary>
+    /// <param name="img">目标图像</param>
+    /// <param name="text">标签文字</param>
+    /// <param name="org">文字左上角基准点（通常是检测框的左上角）</param>
+    /// <param name="bgColor">背景框颜色（BGR）</param>
+    /// <param name="textColor">文字颜色（BGR）</param>
+    static void DrawLabel(Mat img, string text, Point org, Scalar bgColor, Scalar textColor)
+    {
+        HersheyFonts font = HersheyFonts.HersheySimplex;
+        double fontScale = 1.0;
+        int thickness = 2;
+        
+        // 1. 获取文字的尺寸信息
+        Size textSize = Cv2.GetTextSize(text, font, fontScale, thickness, out int baseline);
+        
+        // 2. 计算背景框的坐标（和YOLOv8逻辑一致：文字在框的上方，从检测框左上角往上延伸）
+        int bgX1 = org.X;
+        int bgY1 = org.Y - textSize.Height - baseline; // 文字顶部坐标
+        int bgX2 = org.X + textSize.Width;
+        int bgY2 = org.Y;
+        
+        // 边界保护：防止背景框超出图像上边界
+        if (bgY1 < 0)
+        {
+            bgY1 = org.Y;
+            bgY2 = org.Y + textSize.Height + baseline;
+        }
+        
+        // 3. 绘制填充的背景矩形
+        Cv2.Rectangle(img, new Point(bgX1, bgY1), new Point(bgX2, bgY2), bgColor, -1); // -1表示填充
+        
+        // 4. 在背景框上绘制文字
+        Cv2.PutText(img, text, new Point(bgX1, bgY2 - baseline), font, fontScale, textColor, thickness);
+    }
+    
     /// <summary>
     /// 依据点集拟合直线，返回直线的系数 A, B, C
     /// 其中，A, B, C 分别表示直线的法向量和点到直线的距离
