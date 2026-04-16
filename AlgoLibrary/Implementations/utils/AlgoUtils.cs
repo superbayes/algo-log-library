@@ -38,7 +38,7 @@ public static class AlgoUtils
         Cv2.Rectangle(img, new Point(bgX1, bgY1), new Point(bgX2, bgY2), bgColor, -1); // -1表示填充
         
         // 4. 在背景框上绘制文字
-        Cv2.PutText(img, text, new Point(bgX1, bgY2 - baseline), font, fontScale, textColor, thickness);
+        Cv2.PutText(img, text, new Point(bgX1, bgY2), font, fontScale, textColor, thickness);
     }
     
     /// <summary>
@@ -104,7 +104,7 @@ public static class AlgoUtils
     public static double RadianToAngle0To180(double radians)
     {
         double degrees = radians * 180.0 / Math.PI;
-        return (degrees % 180.0 + 180.0) % 180.0;
+        return 180 - (degrees % 180.0 + 180.0) % 180.0;
     }
 
     /// <summary>
